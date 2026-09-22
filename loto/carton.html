@@ -73,10 +73,14 @@
                         cell.setAttribute('role', 'button');
                         cell.setAttribute('tabindex', '0');
                         cell.setAttribute('aria-pressed', 'false');
-                        cell.addEventListener('click', () => togglePastille(cell));
+                        cell.addEventListener('click', () => {
+                            requestMobileFullscreen();
+                            togglePastille(cell);
+                        });
                         cell.addEventListener('keydown', (event) => {
                             if (event.key === 'Enter' || event.key === ' ') {
                                 event.preventDefault();
+                                requestMobileFullscreen();
                                 togglePastille(cell);
                             }
                         });
@@ -105,6 +109,14 @@
             pastille.style.backgroundColor = `hsl(${randomHue}, 100%, 50%)`;
             cell.appendChild(pastille);
             cell.setAttribute('aria-pressed', 'true');
+        }
+
+        function requestMobileFullscreen() {
+            const isMobile = window.matchMedia('(max-width: 768px) and (pointer: coarse)').matches;
+
+            if (isMobile && !document.fullscreenElement && document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            }
         }
 
         document.querySelectorAll('.carton').forEach(renderCarton);
