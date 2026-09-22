@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&display=swap" rel="stylesheet">
+
+    <title>Carton</title>
+</head>
+<body>
+    <img src="repas_en_famille.png" class="bg-carton">
+
+    <div class="carton" aria-label="Carton de loto"></div>
+
+    <script>
+        function shuffle(items) {
+            return [...items].sort(() => Math.random() - 0.5);
+        }
+
+        function createColumnNumbers(column) {
+            const firstNumber = column === 0 ? 1 : column * 10;
+            const lastNumber = column === 8 ? 90 : firstNumber + 9;
+            return shuffle(
+                Array.from(
+                    { length: lastNumber - firstNumber + 1 },
+                    (_, index) => firstNumber + index
+                )
+            );
+        }
+
+        function createGrid() {
+            let positions;
+
+            do {
+                const columnsWithTwoNumbers = new Set(
+                    shuffle(Array.from({ length: 9 }, (_, column) => column)).slice(0, 6)
+                );
+                const rowCounts = [0, 0, 0];
+
+                positions = Array.from({ length: 3 }, () => Array(9).fill(null));
+
+                for (let column = 0; column < 9; column++) {
+                    const numberOfNumbers = columnsWithTwoNumbers.has(column) ? 2 : 1;
+                    const rows = shuffle([0, 1, 2]);
+
+                    rows.slice(0, numberOfNumbers).forEach((row) => {
+                        positions[row][column] = true;
+                        rowCounts[row]++;
+                    });
+                }
+            } while (positions.some((row, index) => row.filter(Boolean).length !== 5));
+
+            return positions;
+        }
+
+        function renderCarton(carton) {
+            const positions = createGrid();
+            const numbersByColumn = Array.from(
+                { length: 9 },
+                (_, column) => createColumnNumbers(column)
+            );
+
+            positions.forEach((row, rowIndex) => {
+                row.forEach((hasNumber, columnIndex) => {
+                    const cell = document.createElement('div');
+                    cell.classList.add('nombre');
+
+                    if (hasNumber) {
+                        cell.textContent = numbersByColumn[columnIndex].pop();
+                        cell.setAttribute('role', 'button');
+                        cell.setAttribute('tabindex', '0');
+                        cell.setAttribute('aria-pressed', 'false');
+                        cell.addEventListener('click', () => togglePastille(cell));
+                        cell.addEventListener('keydown', (event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                                event.preventDefault();
+                                togglePastille(cell);
+                            }
+                        });
+                    } else {
+                        cell.classList.add('vide');
+                    }
+
+                    cell.setAttribute('aria-label', hasNumber ? `Numéro ${cell.textContent}` : 'Case vide');
+                    carton.appendChild(cell);
+                });
+            });
+        }
+
+        function togglePastille(cell) {
+            const existingPastille = cell.querySelector('.pastille');
+
+            if (existingPastille) {
+                existingPastille.remove();
+                cell.setAttribute('aria-pressed', 'false');
+                return;
+            }
+
+            const pastille = document.createElement('span');
+            const randomHue = Math.floor(Math.random() * 360);
+            pastille.classList.add('pastille');
+            pastille.style.backgroundColor = `hsl(${randomHue}, 100%, 50%)`;
+            cell.appendChild(pastille);
+            cell.setAttribute('aria-pressed', 'true');
+        }
+
+        document.querySelectorAll('.carton').forEach(renderCarton);
+    </script>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Space Grotesk', sans-serif;
+            user-select: none;
+        }
+
+        .bg-carton {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: -1;
+        }
+
+        .carton {
+            display: grid;
+            grid-template-columns: repeat(9, minmax(42px, 1fr));
+        }
+
+        .nombre {
+            position: relative;
+            display: grid;
+            height: calc(100vh / 3);
+            place-items: center;
+            font-size: 6vw;
+            font-weight: 400;
+            background: #fff;
+            cursor: pointer;
+        }
+
+        .nombre.vide {
+            background: transparent;
+            cursor: default;
+        }
+
+        .pastille {
+            position: absolute;
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 50%;
+            opacity: 0.6;
+        }
+    </style>
+</body>
+</html>
