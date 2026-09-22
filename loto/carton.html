@@ -112,7 +112,7 @@
         }
 
         function requestMobileFullscreen() {
-            const isMobile = window.matchMedia('(max-width: 768px) and (pointer: coarse)').matches;
+            const isMobile = window.matchMedia('pointer: coarse').matches;
 
             if (isMobile && !document.fullscreenElement && document.documentElement.requestFullscreen) {
                 document.documentElement.requestFullscreen().catch(() => {});
