@@ -11,14 +11,112 @@
     <title>Carton</title>
 </head>
 <body>
-    <img src="repas_en_famille.png" class="bg-carton">
+    <nav class="background-menu" aria-label="Changer l'arrière-plan">
+        <button class="menu-toggle" type="button" id="backgroundMenuToggle" aria-expanded="false" aria-controls="backgroundMenu" aria-label="Ouvrir le menu d'arrière-plan">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+        <div class="menu-options" id="backgroundMenu" hidden>
+            <button type="button" id="galleryButton">Galerie</button>
+            <button type="button" id="cameraButton">Prendre une photo</button>
+            <button type="button" id="gradientButton">Dégradé aléatoire</button>
+        </div>
+        <input type="file" id="galleryInput" accept="image/*" hidden>
+        <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden>
+    </nav>
+
+    <img src="" class="bg-carton" alt="" aria-hidden="true">
 
     <div class="carton" aria-label="Carton de loto"></div>
 
     <script>
+        const backgroundImage = document.querySelector('.bg-carton');
+        const galleryInput = document.getElementById('galleryInput');
+        const cameraInput = document.getElementById('cameraInput');
+        const backgroundMenu = document.getElementById('backgroundMenu');
+        const backgroundMenuToggle = document.getElementById('backgroundMenuToggle');
+        let backgroundObjectUrl;
+
+        backgroundMenuToggle.addEventListener('click', () => {
+            const isExpanded = backgroundMenuToggle.getAttribute('aria-expanded') === 'true';
+            backgroundMenu.hidden = isExpanded;
+            backgroundMenuToggle.setAttribute('aria-expanded', String(!isExpanded));
+            backgroundMenuToggle.setAttribute(
+                'aria-label',
+                isExpanded ? "Ouvrir le menu d'arrière-plan" : "Fermer le menu d'arrière-plan"
+            );
+        });
+
         function shuffle(items) {
             return [...items].sort(() => Math.random() - 0.5);
         }
+
+        function createRandomGradient() {
+            const firstRandomHue = Math.floor(Math.random() * 360);
+            const hueSeparation = 145 + Math.floor(Math.random() * 71);
+            const secondRandomHue = (firstRandomHue + hueSeparation) % 360;
+            const gradientAngle = Math.floor(Math.random() * 360);
+            return `linear-gradient(${gradientAngle}deg in oklch, hsl(${firstRandomHue}, 78%, 43%), hsl(${secondRandomHue}, 78%, 43%))`;
+        }
+
+        async function setBackgroundImage(file) {
+            if (!file.type.startsWith('image/')) {
+                window.alert('Veuillez choisir un fichier image.');
+                return;
+            }
+
+            const nextObjectUrl = URL.createObjectURL(file);
+            const imageToLoad = new Image();
+            imageToLoad.src = nextObjectUrl;
+
+            try {
+                await imageToLoad.decode();
+            } catch {
+                URL.revokeObjectURL(nextObjectUrl);
+                window.alert('Impossible de charger cette image.');
+                return;
+            }
+
+            if (backgroundObjectUrl) {
+                URL.revokeObjectURL(backgroundObjectUrl);
+            }
+
+            backgroundObjectUrl = nextObjectUrl;
+            backgroundImage.src = nextObjectUrl;
+            backgroundImage.hidden = false;
+            document.body.style.background = '#fff';
+        }
+
+        function handleBackgroundFileChange(event) {
+            const input = event.currentTarget;
+            const file = input.files[0];
+            input.value = '';
+
+            if (file) {
+                setBackgroundImage(file);
+            }
+        }
+
+        document.getElementById('galleryButton').addEventListener('click', () => {
+            galleryInput.click();
+        });
+        document.getElementById('cameraButton').addEventListener('click', () => {
+            cameraInput.click();
+        });
+        function setRandomBackground() {
+            backgroundImage.hidden = true;
+            document.body.style.background = createRandomGradient();
+        }
+        setRandomBackground() // at start
+        document.getElementById('gradientButton').addEventListener('click', () => {
+            setRandomBackground();
+        });
+        galleryInput.addEventListener('change', handleBackgroundFileChange);
+        cameraInput.addEventListener('change', handleBackgroundFileChange);
+
+        backgroundImage.hidden = true;
+        document.body.style.background = createRandomGradient();
 
         function createColumnNumbers(column) {
             const firstNumber = column === 0 ? 1 : column * 10;
@@ -112,9 +210,10 @@
         }
 
         function requestMobileFullscreen() {
-            const isMobile = window.matchMedia('pointer: coarse').matches;
+            // TODO TESTER MOBILE FULLSCREEN
+            // TODO tester le bg bleu moche sur mobile
 
-            if (isMobile && !document.fullscreenElement && document.documentElement.requestFullscreen) {
+            if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
                 document.documentElement.requestFullscreen().catch(() => {});
             }
         }
@@ -130,6 +229,78 @@
             user-select: none;
         }
 
+        .background-menu {
+            position: fixed;
+            z-index: 2;
+            top: max(10px, env(safe-area-inset-top));
+            right: max(10px, env(safe-area-inset-right));
+        }
+
+        .background-menu button {
+            border: 1px solid #d5ded7;
+            border-radius: 6px;
+            background: #fff;
+            color: #18352f;
+            font: inherit;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            touch-action: manipulation;
+            justify-self: end;
+        }
+
+        .background-menu button:focus-visible {
+            outline: 2px solid #cf4935;
+            outline-offset: 2px;
+        }
+
+        .menu-toggle {
+            display: grid;
+            width: 46px;
+            height: 46px;
+            place-content: center;
+            gap: 5px;
+            box-shadow: 0 2px 8px #0002;
+        }
+
+        .menu-toggle span {
+            width: 22px;
+            height: 2px;
+            border-radius: 2px;
+            background: #18352f;
+            transition: opacity 150ms ease, transform 150ms ease;
+        }
+
+        .menu-toggle[aria-expanded="true"] span:first-child {
+            transform: translateY(7px) rotate(45deg);
+        }
+
+        .menu-toggle[aria-expanded="true"] span:nth-child(2) {
+            opacity: 0;
+        }
+
+        .menu-toggle[aria-expanded="true"] span:last-child {
+            transform: translateY(-7px) rotate(-45deg);
+        }
+
+        .menu-options {
+            display: grid;
+            gap: 6px;
+            min-width: 180px;
+            margin-top: 6px;
+            padding: 6px;
+        }
+
+        .menu-options[hidden] {
+            display: none;
+        }
+
+        .menu-options button {
+            min-height: 44px;
+            padding: 8px 12px;
+            text-align: left;
+        }
+
         .bg-carton {
             position: fixed;
             top: 0;
@@ -140,20 +311,28 @@
             z-index: -1;
         }
 
+        .bg-carton[hidden] {
+            display: none;
+        }
+
         .carton {
             display: grid;
-            grid-template-columns: repeat(9, minmax(42px, 1fr));
+            grid-template-columns: repeat(9, minmax(0, 1fr));
+            height: 100vh;
+            height: 100dvh;
         }
 
         .nombre {
             position: relative;
             display: grid;
             height: calc(100vh / 3);
+            height: calc(100dvh / 3);
             place-items: center;
             font-size: 6vw;
             font-weight: 400;
             background: #fff;
             cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .nombre.vide {
@@ -167,6 +346,7 @@
             aspect-ratio: 1;
             border-radius: 50%;
             opacity: 0.6;
+            transition: opacity 0.1s ease-in;
         }
     </style>
 </body>

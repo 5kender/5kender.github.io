@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+
+    <title>Boulier</title>
+    <style>
+        :root {
+            color-scheme: light;
+            font-family: 'DM Sans', sans-serif;
+            color: #18352f;
+            background: #fff;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+            padding: 32px 20px;
+        }
+
+        h1 {
+            margin: 0;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 2rem;
+            font-weight: 600;
+        }
+
+        .ball {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            translate: -50% -50%;
+            width: min(78vmin, 420px);
+            aspect-ratio: 1;
+            display: grid;
+            place-items: center;
+            margin: 0;
+            border-radius: 50%;
+            background: #cf4935;
+            color: #fff;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(6rem, 20vmin, 11rem);
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .ball.is-appearing {
+            animation: appear 380ms cubic-bezier(.2,.8,.2,1) both;
+        }
+
+        .number-value {
+            display: inline-block;
+        }
+
+        .number-value.effect-equation {
+            font-size: clamp(1.5rem, 7vmin, 2.5rem);
+            white-space: nowrap;
+        }
+
+        .number-value.effect-blur {
+            filter: blur(12px);
+        }
+
+        .ball.effect-tiny {
+            scale: .12;
+        }
+
+        .effects-menu {
+            position: fixed;
+            z-index: 2;
+            top: max(12px, env(safe-area-inset-top));
+            right: max(12px, env(safe-area-inset-right));
+        }
+
+        .effects-toggle {
+            min-height: 40px;
+            padding: 8px 12px;
+            border: 1px solid #d5ded7;
+            border-radius: 6px;
+            background: #fff;
+            color: #35564b;
+            font: inherit;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+
+        .effects-panel {
+            display: grid;
+            gap: 8px;
+            min-width: 190px;
+            max-height: min(70vh, 420px);
+            overflow-y: auto;
+            margin-top: 6px;
+            padding: 12px;
+            border: 1px solid #d5ded7;
+            border-radius: 8px;
+            background: #fff;
+            box-shadow: 0 4px 14px #0002;
+        }
+
+        .effects-panel[hidden] {
+            display: none;
+        }
+
+        .effects-panel label {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            min-height: 32px;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .effects-panel input {
+            width: 18px;
+            height: 18px;
+            margin: 0;
+            accent-color: #cf4935;
+        }
+
+        .effects-toggle:focus-visible,
+        .effects-panel input:focus-visible {
+            outline: 2px solid #cf4935;
+            outline-offset: 3px;
+        }
+
+        .ball.is-empty {
+            background: #dce3d8;
+            box-shadow: inset 0 -8px 0 #c7d1c3;
+            color: #587168;
+        }
+
+        .history-toggle {
+            min-height: 30px;
+            padding: 5px 9px;
+            border: 0;
+            border-radius: 4px;
+            background: transparent;
+            color: #587168;
+            font: inherit;
+            font-size: 0.78rem;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .controls {
+            position: fixed;
+            z-index: 1;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: max-content;
+            max-width: calc(100vw - 24px);
+        }
+
+        .pause-toggle {
+            min-height: 30px;
+            padding: 5px 9px;
+            border: 1px solid #d5ded7;
+            border-radius: 4px;
+            background: transparent;
+            color: #35564b;
+            font: inherit;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .pause-toggle:hover:not(:disabled) {
+            background: #edf2e9;
+        }
+
+        .pause-toggle:focus-visible {
+            outline: 2px solid #cf4935;
+            outline-offset: 3px;
+        }
+
+        .pause-toggle:disabled {
+            color: #8b9b91;
+            cursor: default;
+        }
+
+        .history-toggle:hover {
+            color: #18352f;
+            text-decoration: underline;
+        }
+
+        .history-toggle:focus-visible {
+            outline: 2px solid #cf4935;
+            outline-offset: 3px;
+        }
+
+        .history {
+            position: fixed;
+            z-index: 1;
+            bottom: 68px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: min(calc(100vw - 32px), 600px);
+            max-height: 190px;
+            overflow: auto;
+            margin: 0;
+            padding: 18px 4px 0;
+            border-top: 1px solid #dce3d8;
+        }
+
+        .history.is-hidden {
+            visibility: hidden;
+        }
+
+        .passed-numbers {
+            min-height: 1.5em;
+            margin: 0;
+            color: #587168;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            font-variant-numeric: tabular-nums;
+        }
+
+        @keyframes appear {
+            from { transform: scale(.82); opacity: .35; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+
+        @media (prefers-reduced-motion: reduce) {
+            html {
+                scroll-behavior: auto;
+            }
+
+            .ball.is-appearing {
+                animation: none;
+            }
+
+        }
+    </style>
+</head>
+<body>
+    <div class="effects-menu">
+        <button class="effects-toggle" id="effectsToggle" type="button" aria-expanded="false" aria-controls="effectsPanel">
+            Effets
+        </button>
+        <fieldset class="effects-panel" id="effectsPanel" aria-label="Effets activés" hidden>
+            <label><input type="checkbox" data-effect="calcul" checked> Calcul</label>
+            <label><input type="checkbox" data-effect="upside-down" checked> À l’envers</label>
+            <label><input type="checkbox" data-effect="sequence" checked> Suite logique</label>
+            <label><input type="checkbox" data-effect="blur" checked> Flou</label>
+            <label><input type="checkbox" data-effect="tiny" checked> Tout petit</label>
+            <label><input type="checkbox" data-effect="wiggle" checked> Ça bouge</label>
+            <label><input type="checkbox" data-effect="mirror" checked> Miroir</label>
+            <label><input type="checkbox" data-effect="rotate" checked> Rotation</label>
+        </fieldset>
+    </div>
+    <div class="ball is-appearing" id="currentNumber" aria-live="polite" aria-atomic="true">
+        <span class="number-value" id="numberValue">--</span>
+    </div>
+    <div class="controls">
+        <button class="history-toggle" id="historyToggle" type="button" aria-expanded="false" aria-controls="history">
+            Afficher les numéros tirés
+        </button>
+        <button class="pause-toggle" id="pauseToggle" type="button" aria-pressed="false">
+            Pause
+        </button>
+    </div>
+    <section class="history is-hidden" id="history" aria-label="Numéros déjà tirés" aria-hidden="true">
+        <p class="passed-numbers" id="passedNumbers"></p>
+    </section>
+
+    <script>
+        const currentNumberElement = document.getElementById('currentNumber');
+        const numberValueElement = document.getElementById('numberValue');
+        const passedNumbersElement = document.getElementById('passedNumbers');
+        const historyElement = document.getElementById('history');
+        const historyToggle = document.getElementById('historyToggle');
+        const pauseToggle = document.getElementById('pauseToggle');
+        const effectsToggle = document.getElementById('effectsToggle');
+        const effectsPanel = document.getElementById('effectsPanel');
+        const effectCheckboxes = [...effectsPanel.querySelectorAll('input[data-effect]')];
+        const effectsStorageKey = 'loto-rigolo-enabled-effects';
+        const drawOrder = Array.from({ length: 90 }, (_, index) => index + 1);
+        const passedNumbers = [];
+        let drawIndex = 0;
+        let drawTimer;
+        let isPaused = false;
+        let ballAnimations = [];
+
+        const numberEffects = [
+            {
+                name: 'calcul',
+                id: 'calcul',
+                contentEffect: true,
+                className: 'effect-equation',
+                display(number) {
+                    const firstPart = number > 1
+                        ? Math.floor(Math.random() * (number - 1)) + 1
+                        : 0;
+                    return `${firstPart} + ${number - firstPart} = ?`;
+                },
+            },
+            {
+                name: 'à l’envers',
+                id: 'upside-down',
+                className: 'effect-upside-down',
+                display: String,
+            },
+            {
+                name: 'suite logique',
+                id: 'sequence',
+                contentEffect: true,
+                className: 'effect-equation',
+                display(number) {
+                    const possibleSteps = [2, 3, 4].filter((step) => number - 3 * step >= 1);
+                    const step = possibleSteps.length
+                        ? possibleSteps[Math.floor(Math.random() * possibleSteps.length)]
+                        : 1;
+                    const termCount = Math.min(3, number - 1);
+                    const terms = Array.from(
+                        { length: termCount },
+                        (_, index) => number - step * (termCount - index)
+                    );
+                    return [...terms, '?'].join(' , ');
+                },
+            },
+            { name: 'flou', id: 'blur', className: 'effect-blur', display: String },
+            { name: 'mini', id: 'tiny', className: 'effect-tiny', display: String },
+            { name: 'bouge', id: 'wiggle', className: 'effect-wiggle', display: String },
+            { name: 'miroir', id: 'mirror', className: 'effect-mirror', display: String },
+            { name: 'rotation', id: 'rotate', className: 'effect-rotate', display: String },
+        ];
+
+        function loadEffectPreferences() {
+            try {
+                const savedPreferences = localStorage.getItem(effectsStorageKey);
+                if (!savedPreferences) {
+                    return;
+                }
+
+                const enabledEffects = JSON.parse(savedPreferences);
+                if (enabledEffects === null || typeof enabledEffects !== 'object' || Array.isArray(enabledEffects)) {
+                    throw new TypeError('Les préférences des effets ne sont pas valides.');
+                }
+
+                effectCheckboxes.forEach((checkbox) => {
+                    if (typeof enabledEffects[checkbox.dataset.effect] === 'boolean') {
+                        checkbox.checked = enabledEffects[checkbox.dataset.effect];
+                    }
+                });
+            } catch (error) {
+                console.warn('Impossible de charger les préférences des effets.', error);
+            }
+        }
+
+        function saveEffectPreferences() {
+            const enabledEffects = Object.fromEntries(
+                effectCheckboxes.map((checkbox) => [checkbox.dataset.effect, checkbox.checked])
+            );
+
+            try {
+                localStorage.setItem(effectsStorageKey, JSON.stringify(enabledEffects));
+            } catch (error) {
+                console.warn('Impossible d’enregistrer les préférences des effets.', error);
+            }
+        }
+
+        loadEffectPreferences();
+
+        for (let index = drawOrder.length - 1; index > 0; index--) {
+            const randomIndex = Math.floor(Math.random() * (index + 1));
+            [drawOrder[index], drawOrder[randomIndex]] = [drawOrder[randomIndex], drawOrder[index]];
+        }
+
+        function renderPassedNumbers() {
+            passedNumbersElement.textContent = [...passedNumbers]
+                .sort((first, second) => first - second)
+                .join(', ');
+        }
+
+        function createRandomMovementPoint(maxX, maxY) {
+            if (maxX === 0 && maxY === 0) {
+                return { x: 0, y: 0 };
+            }
+
+            let x;
+            let y;
+
+            do {
+                x = (Math.random() * 2 - 1) * maxX;
+                y = (Math.random() * 2 - 1) * maxY;
+            } while (Math.abs(x) < maxX * 0.12 && Math.abs(y) < maxY * 0.12);
+
+            return { x, y };
+        }
+
+        function startRandomBallMovement() {
+            const { width, height } = currentNumberElement.getBoundingClientRect();
+            const maxX = Math.max(0, (window.innerWidth - width) / 2 - 6);
+            const maxY = Math.max(0, (window.innerHeight - height) / 2 - 6);
+            const points = Array.from(
+                { length: 12 },
+                () => createRandomMovementPoint(maxX, maxY)
+            );
+            const keyframes = points.map((point, index) => ({
+                transform: `translate(${point.x}px, ${point.y}px)`,
+                offset: index / points.length,
+            }));
+
+            keyframes.push({
+                transform: `translate(${points[0].x}px, ${points[0].y}px)`,
+                offset: 1,
+            });
+            ballAnimations.push(currentNumberElement.animate(keyframes, {
+                duration: 2400,
+                iterations: Infinity,
+                easing: 'linear',
+                composite: 'add',
+            }));
+        }
+
+        function startBallRotation() {
+            ballAnimations.push(currentNumberElement.animate(
+                [
+                    { transform: 'rotate(0deg)' },
+                    { transform: 'rotate(360deg)' },
+                ],
+                {
+                    duration: 400,
+                    iterations: Infinity,
+                    easing: 'linear',
+                    composite: 'add',
+                }
+            ));
+        }
+
+        function playNumberEffect(number) {
+            const enabledEffects = new Set(
+                effectCheckboxes
+                    .filter((checkbox) => checkbox.checked)
+                    .map((checkbox) => checkbox.dataset.effect)
+            );
+            const availableEffects = numberEffects.filter((effect) => enabledEffects.has(effect.id));
+            const firstEffect = availableEffects.length
+                ? availableEffects[Math.floor(Math.random() * availableEffects.length)]
+                : null;
+            const compatibleEffects = firstEffect
+                ? availableEffects.filter((effect) =>
+                    effect !== firstEffect && !(effect.contentEffect && firstEffect.contentEffect)
+                )
+                : [];
+            const selectedEffects = firstEffect
+                ? [
+                    firstEffect,
+                    ...(compatibleEffects.length > 0 && Math.random() < 0.25
+                        ? [compatibleEffects[Math.floor(Math.random() * compatibleEffects.length)]]
+                        : []),
+                ]
+                : [];
+            const contentEffect = selectedEffects.find((effect) => effect.contentEffect);
+
+            numberValueElement.className = 'number-value';
+            numberValueElement.style.transform = '';
+            currentNumberElement.classList.remove('is-appearing', 'effect-tiny');
+            ballAnimations.forEach((animation) => animation.cancel());
+            ballAnimations = [];
+            void numberValueElement.offsetWidth;
+            void currentNumberElement.offsetWidth;
+            numberValueElement.textContent = contentEffect ? contentEffect.display(number) : String(number);
+            if (selectedEffects.length === 0) {
+                currentNumberElement.classList.add('is-appearing');
+                currentNumberElement.removeAttribute('aria-label');
+                return;
+            }
+
+            const numberTransforms = [];
+            selectedEffects.forEach((effect) => {
+                if (effect.id === 'wiggle') {
+                    startRandomBallMovement();
+                } else if (effect.id === 'rotate') {
+                    startBallRotation();
+                } else if (effect.id === 'tiny') {
+                    currentNumberElement.classList.add('effect-tiny');
+                } else {
+                    if (effect.className) {
+                        numberValueElement.classList.add(effect.className);
+                    }
+
+                    if (effect.id === 'mirror') {
+                        numberTransforms.push('scaleX(-1)');
+                    } else if (effect.id === 'upside-down') {
+                        numberTransforms.push('rotate(180deg)');
+                    }
+                }
+            });
+
+            if (numberTransforms.length > 0) {
+                numberValueElement.style.transform = numberTransforms.join(' ');
+            }
+
+            if (!selectedEffects.some((effect) => effect.id === 'wiggle' || effect.id === 'rotate')) {
+                currentNumberElement.classList.add('is-appearing');
+            }
+            currentNumberElement.setAttribute('aria-label', `Numéro tiré ${number}`);
+
+        }
+
+        function drawNextNumber() {
+            const number = drawOrder[drawIndex];
+            currentNumberElement.classList.remove('is-empty');
+            playNumberEffect(number);
+            const firstRandomHue = Math.floor(Math.random() * 360);
+            const hueSeparation = 145 + Math.floor(Math.random() * 71);
+            const secondRandomHue = (firstRandomHue + hueSeparation) % 360;
+            const gradientAngle = Math.floor(Math.random() * 360);
+            currentNumberElement.style.background = `linear-gradient(${gradientAngle}deg in oklch, hsl(${firstRandomHue}, 78%, 43%), hsl(${secondRandomHue}, 78%, 43%))`;
+            passedNumbers.push(number);
+            renderPassedNumbers();
+            drawIndex++;
+
+            if (drawIndex === drawOrder.length) {
+                window.clearInterval(drawTimer);
+                pauseToggle.textContent = 'Terminé';
+                pauseToggle.disabled = true;
+            }
+        }
+
+        function togglePause() {
+            if (drawIndex === drawOrder.length) {
+                return;
+            }
+
+            isPaused = !isPaused;
+            pauseToggle.setAttribute('aria-pressed', String(isPaused));
+            pauseToggle.textContent = isPaused ? 'Reprendre' : 'Pause';
+
+            if (isPaused) {
+                window.clearInterval(drawTimer);
+                return;
+            }
+
+            drawTimer = window.setInterval(drawNextNumber, 5000);
+        }
+
+        historyToggle.addEventListener('click', () => {
+            const isExpanded = historyToggle.getAttribute('aria-expanded') === 'true';
+            historyToggle.setAttribute('aria-expanded', String(!isExpanded));
+            historyElement.classList.toggle('is-hidden', isExpanded);
+            historyElement.setAttribute('aria-hidden', String(isExpanded));
+            historyToggle.textContent = isExpanded
+                ? 'Afficher les numéros tirés'
+                : 'Masquer les numéros tirés';
+        });
+
+        effectsToggle.addEventListener('click', () => {
+            const isExpanded = effectsToggle.getAttribute('aria-expanded') === 'true';
+            effectsToggle.setAttribute('aria-expanded', String(!isExpanded));
+            effectsPanel.hidden = isExpanded;
+        });
+
+        effectCheckboxes.forEach((checkbox) => {
+            checkbox.addEventListener('change', saveEffectPreferences);
+        });
+
+        pauseToggle.addEventListener('click', togglePause);
+        document.addEventListener('keydown', (event) => {
+            const target = event.target;
+            const isInteractive = target instanceof Element && target.closest('button, a, input, textarea, select, [contenteditable="true"]');
+
+            if (event.code === 'Space' && !event.repeat && !isInteractive) {
+                event.preventDefault();
+                togglePause();
+            }
+        });
+
+        drawNextNumber();
+        drawTimer = window.setInterval(drawNextNumber, 5000);
+    </script>
+</body>
+</html>
